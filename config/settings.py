@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     'corsheaders',
     # Proyecto
     'apps.content',
+    'apps.shop',
 ]
 
 MIDDLEWARE = [
@@ -98,7 +99,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # CORS: solo el frontend autorizado puede consumir la API desde el navegador.
 CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='http://localhost:5173', cast=Csv())
 
-# API pública de solo lectura.
+# API pública: contenido de solo lectura y creación de pedidos.
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.AllowAny'],
     'DEFAULT_AUTHENTICATION_CLASSES': [],
@@ -111,11 +112,28 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 12,
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    # Límite de peticiones por IP en los endpoints de pedidos.
+    'DEFAULT_THROTTLE_RATES': {
+        'orders': config('THROTTLE_ORDERS', default='20/hour'),
+        'order-status': config('THROTTLE_ORDER_STATUS', default='120/hour'),
+    },
 }
+
+# ---------- Tienda ----------
+# Dirección pública del frontend: a ella vuelve el cliente después de pagar.
+FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:5173')
+# Costo de envío fijo en pesos mientras no haya tarifas por ciudad.
+SHOP_SHIPPING_COP = config('SHOP_SHIPPING_COP', default=0, cast=int)
+
+# Wompi. Sin llaves el pago en línea queda desactivado. Usa las de pruebas (pub_test_…)
+# hasta salir a producción. Los secretos nunca van al repositorio.
+WOMPI_PUBLIC_KEY = config('WOMPI_PUBLIC_KEY', default='')
+WOMPI_INTEGRITY_SECRET = config('WOMPI_INTEGRITY_SECRET', default='')
+WOMPI_EVENTS_SECRET = config('WOMPI_EVENTS_SECRET', default='')
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Café Legendario API',
-    'DESCRIPTION': 'API pública de solo lectura: recetas, métodos, variedades y artículos sobre café.',
+    'DESCRIPTION': 'API pública: contenido sobre café, catálogo de la tienda y pedidos.',
     'VERSION': '0.1.0',
     'SERVE_INCLUDE_SCHEMA': False,
 }
