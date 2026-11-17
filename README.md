@@ -84,3 +84,27 @@ docker run --env-file .env -p 8000:8000 cafe-legendario-backend
 
 - Almacenamiento persistente de imágenes en producción (disco de Render o bucket).
 - GitHub Actions, despliegue en Render, Sentry, Grafana y Terraform (Fase 6).
+
+## Tienda y pagos
+
+La app `apps.shop` añade el catálogo, los pedidos y el pago con Wompi.
+
+| Endpoint | Qué hace |
+|---|---|
+| `GET /api/products/` y `/api/products/<slug>/` | Catálogo publicado, con sus presentaciones (molienda). |
+| `POST /api/orders/` | Crea un pedido pendiente. Recibe contacto, `items` (`sku`, `quantity`) y `accept_terms`. El total se calcula en el servidor. |
+| `GET /api/orders/<referencia>/` | Estado del pedido. No devuelve datos personales. |
+| `POST /api/payments/wompi/events/` | Webhook de Wompi. Solo acepta avisos con la firma correcta. |
+
+La migración `0002_seed_legendario` carga Legendario Café en grano y molido (500 g, $ 38.000).
+
+### Activar Wompi
+
+1. En el panel de comercios de Wompi, sección Desarrolladores, copia la llave pública, el secreto de integridad y el secreto de eventos. Empieza con las de pruebas.
+2. Ponlas en `.env` (o en las variables del hosting): `WOMPI_PUBLIC_KEY`, `WOMPI_INTEGRITY_SECRET`, `WOMPI_EVENTS_SECRET`.
+3. Define `FRONTEND_URL` con la dirección pública del frontend.
+4. En Wompi, registra como URL de eventos `https://<tu-backend>/api/payments/wompi/events/`.
+
+Sin las llaves, los pedidos se registran pero la respuesta trae `payment: null` y el frontend muestra el pago como no disponible.
+
+El servidor nunca recibe datos de tarjetas: el cliente paga en el formulario de Wompi. El pedido solo pasa a «Pagado» cuando llega el aviso firmado y el monto coincide.
