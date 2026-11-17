@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from .models import Article, BrewMethod, Category, Ingredient, Recipe, Variety
@@ -56,12 +57,25 @@ class RecipeListSerializer(serializers.ModelSerializer):
         ]
 
 
+class CoffeeAmountSerializer(serializers.Serializer):
+    grams = serializers.IntegerField(source='coffee_grams')
+    grind = serializers.CharField(source='coffee_grind')
+
+
 class RecipeDetailSerializer(RecipeListSerializer):
     ingredients = IngredientSerializer(many=True, read_only=True)
     steps = serializers.SlugRelatedField(many=True, read_only=True, slug_field='text')
+    coffee = serializers.SerializerMethodField()
 
     class Meta(RecipeListSerializer.Meta):
-        fields = RecipeListSerializer.Meta.fields + ['ingredients', 'steps', 'tips']
+        fields = RecipeListSerializer.Meta.fields + ['ingredients', 'steps', 'tips', 'coffee']
+
+    @extend_schema_field(CoffeeAmountSerializer(allow_null=True))
+    def get_coffee(self, recipe):
+        """Cantidad de Café Legendario que pide la receta, o null si no la indica."""
+        if not recipe.coffee_grams:
+            return None
+        return CoffeeAmountSerializer(recipe).data
 
 
 class ArticleSerializer(serializers.ModelSerializer):
