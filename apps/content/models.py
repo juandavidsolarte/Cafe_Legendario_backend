@@ -139,6 +139,11 @@ class Recipe(PublishableModel):
     )
     tips = models.TextField('consejos y recomendaciones', blank=True)
     featured = models.BooleanField('destacada', default=False)
+    coffee_grams = models.PositiveSmallIntegerField(
+        'Café Legendario (g)', null=True, blank=True,
+        help_text='Gramos de Café Legendario que pide la receta.',
+    )
+    coffee_grind = models.CharField('molienda sugerida', max_length=60, blank=True)
 
     class Meta:
         verbose_name = 'receta'

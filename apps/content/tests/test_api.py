@@ -6,7 +6,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
-from apps.content.models import BrewMethod, Category, Recipe, Variety
+from apps.content.models import Article, BrewMethod, Category, Recipe, Variety
 
 # GIF de 1x1 px para los campos de imagen.
 PIXEL = (
@@ -37,6 +37,12 @@ def make_recipe(name, slug, category, method, **extra):
 class ContentApiTests(TestCase):
     @classmethod
     def setUpTestData(cls):
+        # La migración 0003 carga contenido de ejemplo; estas pruebas usan solo el suyo.
+        Recipe.objects.all().delete()
+        BrewMethod.objects.all().delete()
+        Category.objects.all().delete()
+        Variety.objects.all().delete()
+        Article.objects.all().delete()
         cls.hot = Category.objects.create(name='Calientes', slug='calientes')
         cls.cold = Category.objects.create(name='Frías', slug='frias')
         cls.espresso = BrewMethod.objects.create(
@@ -100,3 +106,20 @@ class PublishValidationTests(TestCase):
         )
         with self.assertRaises(ValidationError):
             variety.full_clean()
+
+
+class SeedContentTests(TestCase):
+    """Contenido inicial que carga la migración 0003."""
+
+    def test_seed_publishes_example_content(self):
+        client = APIClient()
+        self.assertEqual(client.get('/api/recipes/').json()['count'], 8)
+        self.assertEqual(len(client.get('/api/methods/').json()), 6)
+        self.assertEqual(client.get('/api/varieties/').json()['count'], 6)
+        self.assertEqual(len(client.get('/api/articles/').json()), 6)
+
+    def test_recipe_detail_includes_coffee_amount(self):
+        data = APIClient().get('/api/recipes/cold-brew/').json()
+        self.assertEqual(data['coffee'], {'grams': 80, 'grind': 'Gruesa'})
+        self.assertEqual(data['category']['slug'], 'frias')
+        self.assertEqual(len(data['steps']), 4)
